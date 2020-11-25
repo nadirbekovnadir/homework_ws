@@ -104,6 +104,60 @@ bool Mission::SetName(const string &value)
     return true;
 }
 
+string Mission::TasksListToString()
+{
+    string result;
+    result.reserve(10 * tasks.size());
+
+    result += headerStr + " " + missionName + ":\n";
+
+    if (tasks.size() == 0)
+    {
+        result += "Задачи отсутствуют\n";
+        return result;
+    }
+
+    int pos = 0;
+    // for (auto task : tasks)
+    //     result += "[" + to_string(pos++) + "]"
+    //     + task->Pointer()->GetHeader() + "\n"; // + "\n";
+
+    for (auto task : tasks)
+    {
+        string header;
+
+        switch (task->Type())
+        {
+        case Task::DiveTask:
+            header = Dive::GetHeader();
+            break;
+
+        case Task::LiftTask:
+            header = Lift::GetHeader();
+            break;
+
+        case Task::MoveTask:
+            header = Move::GetHeader();
+            break;
+
+        case Task::ReturnTask:
+            header = Return::GetHeader();
+            break;
+
+        default:
+            header = Task::GetHeader();
+            break;
+        }
+
+        result += "[" + to_string(pos++) + "]" +
+                  header + "\n"; // + "\n";
+    }
+
+    result += "\n";
+
+    return result;
+}
+
 string Mission::WriteToString()
 {
     string result;
@@ -111,8 +165,14 @@ string Mission::WriteToString()
 
     result += headerStr + " " + missionName + ":\n";
 
+    if (tasks.size() == 0)
+    {
+        result += "Задачи отсутствуют\n";
+        return result;
+    }
+
     for (auto task : tasks)
-        result += task->WriteToString();// + "\n";
+        result += task->WriteToString(); // + "\n";
 
     result += "\n";
 

@@ -151,6 +151,9 @@ public:
     ErrorState SetMovementControlType(MovementControlType type);
     ErrorState SetPrecision(float value);
 
+    static void GetMaxMinX(float &max, float &min);
+    static void GetMaxMinY(float &max, float &min);
+
     void GetXY(float &x, float &y);
 
     MovementType GetMovementType();

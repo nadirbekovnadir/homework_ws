@@ -286,6 +286,18 @@ Move::ErrorState Move::SetPrecision(float value)
     return None;
 }
 
+void Move::GetMaxMinX(float &max, float &min)
+{
+    max = maxX;
+    min = minX;
+}
+
+void Move::GetMaxMinY(float &max, float &min)
+{
+    max = maxY;
+    min = minY;
+}
+
 void Move::GetXY(float &x, float &y)
 {
     x = this->x;

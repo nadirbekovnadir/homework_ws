@@ -28,6 +28,9 @@ private:
 
 public:
     bool SetName(const string &value);
+
+    string TasksListToString();
+
     string WriteToString();
     bool ReadFromString(const string &str);
 };
