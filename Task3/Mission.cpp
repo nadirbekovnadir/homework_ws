@@ -25,6 +25,9 @@ Task *Mission::GetTask(int pos)
     return tasks[pos];
 }
 
+//Не читал документацию, но возможно,
+//если передать позицию далеко за позицией end итератора,
+//все к чертям полетит, однако, лень...
 bool Mission::AddTask(Task *task, int pos)
 {
     if (pos < 0 && pos != -1)
@@ -54,9 +57,11 @@ bool Mission::RemoveTask(int pos)
     }
     else
     {
+        //Можно было бы записать изящнее и короче
+        //Как и весь код...
         auto iter = tasks.begin();
-        // auto pointer = (*iter)->Pointer();
-        // delete pointer;
+        auto pointer = (*(iter + pos))->Pointer();
+        delete pointer;
         tasks.erase(iter + pos);
     }
 

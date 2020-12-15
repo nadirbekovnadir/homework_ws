@@ -1,4 +1,8 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+
 #include "Task.h"
 #include "Mission.h"
 
@@ -6,6 +10,7 @@ using namespace std;
 
 bool OpenExistingMission();
 bool CreateNewMission();
+bool SaveMissionToFile();
 
 bool ConfigureMission();
 
@@ -19,7 +24,11 @@ bool CreateReturn(Task *&task);
 bool OpenTask();
 bool SwapTasks();
 
+//Глобальные переменные зло
+//А кто сказал, что я добрый...
 Mission mission;
+string fileName = "Mission.txt";
+
 int main(int, char **)
 {
     //Требуемые проверки в сам класс я добавли
@@ -36,6 +45,10 @@ int main(int, char **)
     //Круто было бы вопсользоваться паттерном конечных автоматов
     //Но я уже фантазирую на случай, если будет время
 
+    //Не знаю писал ли я это, но во многих местах проверки излишни
+    //Или же некоторые if не будут достигнуты и т.п.
+    //Однако, я сохранял структуру, чтобы не допустить ошибок
+
     cout << "Добрый день! Вас приветствует планировщик миссий\n";
 
     while (true)
@@ -43,6 +56,7 @@ int main(int, char **)
         cout << "Список возможных команд:\n";
         cout << "n - создать новую миссию\n";
         cout << "o - открыть сохраненную миссию\n";
+        cout << "s - сохранить в файл миссию\n";
         cout << "q - выйти из планировщика\n";
         cout << "Введите команду: ";
 
@@ -58,23 +72,28 @@ int main(int, char **)
         if (answer == 'q')
             break;
 
-        if (answer == 'o')
-        {
-            correctAnswer = true;
-
-            if (!OpenExistingMission())
-            {
-                cout << "Не удалось открыть миссию!\n\n";
-                continue;
-            }
-        }
-
         if (answer == 'n')
         {
             correctAnswer = true;
 
             if (!CreateNewMission())
                 continue;
+        }
+
+        if (answer == 'o')
+        {
+            correctAnswer = true;
+
+            if (!OpenExistingMission())
+                continue;
+        }
+
+        if (answer == 's')
+        {
+            correctAnswer = true;
+
+            SaveMissionToFile();
+            continue;
         }
 
         if (!correctAnswer)
@@ -87,11 +106,70 @@ int main(int, char **)
             break;
     }
 
+    while (true)
+    {
+        bool correctAnswer;
+        char answer;
+
+        cout << "Сохранить текущую миссию?\n";
+        cout << "y - да\n";
+        cout << "n - нет\n";
+
+        cin >> answer;
+        correctAnswer = false;
+        cin.clear();
+
+        cout << endl;
+
+        if (answer == 'y')
+        {
+            correctAnswer = true;
+            SaveMissionToFile();
+            break;
+        }
+
+        if (answer == 'n')
+        {
+            correctAnswer = true;
+            break;
+        }
+
+        if (!correctAnswer)
+        {
+            cout << "Некорректная команда!\n\n";
+            continue;
+        }
+
+        cout << endl;
+    }
+
     cout << "Планировка миссий завершена\n";
 }
 
 bool OpenExistingMission()
 {
+    ifstream fin;
+    fin.open(fileName);
+
+    if (!fin.is_open())
+    {
+        cout << "Не удалось открыть файл с миссией!\n\n";
+        return false;
+    }
+
+    stringstream missionStr;
+    missionStr << fin.rdbuf();
+
+    fin.close();
+
+    if (!mission.ReadFromString(missionStr.str()))
+    {
+        cout << "Не удалось прочитать миссию из файла!\n\n";
+        return false;
+    }
+
+    cout << "Миссия успешно открыта!\n\n";
+
     return true;
 }
 
@@ -114,6 +192,65 @@ bool CreateNewMission()
         cout << "\nНекорректное имя!\n\n";
         continue;
     }
+
+    return true;
+}
+
+bool SaveMissionToFile()
+{
+    ofstream fout;
+    fout.open(fileName, ios_base::trunc);
+
+    if (!fout.is_open())
+    {
+        cout << "Не удалось записать миссию в файл!\n\n";
+        return false;
+    }
+
+    if (!mission.Correctness())
+    {
+
+        bool correctAnswer;
+        char answer;
+
+        while (true)
+        {
+            cout << "Миссия некорректна, все равно сохранить?\n";
+            cout << "y - да\n";
+            cout << "n - нет\n";
+
+            cin >> answer;
+            correctAnswer = false;
+            cin.clear();
+
+            cout << endl;
+
+            if (answer == 'y')
+            {
+                correctAnswer = true;
+                break;
+            }
+
+            if (answer == 'n')
+            {
+                correctAnswer = true;
+                return false;
+            }
+
+            if (!correctAnswer)
+            {
+                cout << "Некорректная команда!\n\n";
+                continue;
+            }
+
+            cout << endl;
+        }
+    }
+
+    fout << mission.WriteToString();
+    fout.close();
+
+    cout << "Миссия успешно сохранена!\n\n";
 
     return true;
 }
@@ -602,6 +739,9 @@ bool OpenTask()
             default:
                 break;
             }
+
+            mission.RemoveTask(position);
+            mission.AddTask(task, position);
         }
 
         if (answer == 'd')
