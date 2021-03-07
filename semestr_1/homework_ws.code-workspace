@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "Task3"
+		},
+		{
+			"path": "Task1_Ivan"
 		}
 	],
 	"settings": {
@@ -64,7 +67,12 @@
 			"map": "cpp",
 			"ratio": "cpp",
 			"regex": "cpp",
-			"shared_mutex": "cpp"
+			"shared_mutex": "cpp",
+			"list": "cpp",
+			"set": "cpp",
+			"mutex": "cpp",
+			"thread": "cpp",
+			"cinttypes": "cpp"
 		}
 	}
 }
