@@ -2,125 +2,147 @@
 #define SOLVER_H
 
 #include "Matrix.h"
+#include <list>
+#include <tuple>
 
 class Solver
 {
 public:
     template <class T>
-    static Matrix<T> Solve(const Matrix<T> &A, const Matrix<T> &B);
+    static Matrix<T> Solve(const Matrix<T> &A, const Matrix<T> &B, bool &error);
+
+    template <class T>
+    static Matrix<T> Reverse(const Matrix<T> &A, const Matrix<T> &B, bool &error);
 
 private:
     template <class T>
-    static Matrix<T> Prepare(Matrix<T> A);
+    static bool ForwardMove(Matrix<T> &A, Matrix<T> &L);
+
+    static list<tuple<int, int>> hist_rev;
+    template <class T>
+    static T Sort(Matrix<T> &A, Matrix<T> &L, int col);
 
     template <class T>
-    static Matrix<T> ForwardMove(const Matrix<T> &m1, const Matrix<T> &m2);
+    static void BackwardMove(const Matrix<T> &A, const Matrix<T> &B, Matrix<T> &X);
 
     template <class T>
-    static Matrix<T> CreateL(const Matrix<T> &A);
-
-    template <class T>
-    static Matrix<T> CreateU(const Matrix<T> &L, const Matrix<T> &A);
+    static void Desort(Matrix<T> &X);
 };
 
-template <class T>
-Matrix<T> Solver::Solve(const Matrix<T> &A, const Matrix<T> &B)
-{
-    Matrix<T> prepA(Prepare(A));
-    Matrix<T> L(CreateL(prepA));
-    Matrix<T> U(CreateU(L, prepA));
+list<tuple<int, int>> Solver::hist_rev;
 
-    Matrix<T> B_new(ForwardMove(L, B));
-    B_new = ForwardMove(U, B_new);
-
-    return B_new;
-}
+// ------------------ Public block ------------------ //
 
 template <class T>
-Matrix<T> Solver::Prepare(Matrix<T> A)
+Matrix<T> Solver::Solve(const Matrix<T> &A, const Matrix<T> &B, bool &error)
 {
-    Matrix<T> result(A.Rows(), A.Columns());
-    T max;
-    int currI;
+    hist_rev.clear();
 
-    int i, j;
-    for (j = 0; j < A.Columns(); ++j)
-    {
-        max = A.Get(j, j);
-        currI = j;
-        for (i = j + 1; i < A.Rows(); ++i)
-        {
-            if (A.Get(i, j) <= max)
-                continue;
+    Matrix<T> X(B.Rows(), B.Columns());
+    Matrix<T> U(A);
+    Matrix<T> L(A.Rows(), A.Columns());
+    Matrix<T> B_des(B);
 
-            max = A.Get(i, j);
-            currI = i;
-        }
-
-        A.SwapRows(i, currI);
-    }
-
-    return result;
-}
-
-template <class T>
-Matrix<T> Solver::ForwardMove(const Matrix<T> &A, const Matrix<T> &B)
-{
-    Matrix<T> X(B.Rows(), 1);
-
-    int i, j;
-    T sum = 0;
-    X.Set(X.Rows() - 1, 1, B.Get(X.Rows() - 1, 1) / A.Get(X.Rows() - 1, X.Rows() - 1));
-
-    for (i = X.Rows() - 2; i >= 0; --i)
-    {
-        for (j = i + 1; j < A.Columns(); ++j)
-            sum += A.Get(i, j) * X.Get(j, 1);
-
-        X.Set(i, 1, (B.Get(i, 1) - sum) / A.Get(i, i));
-    }
+    error = !ForwardMove(U, L);
+    Desort(B_des);
+    BackwardMove(U, L * B_des, X);
 
     return X;
 }
 
 template <class T>
-Matrix<T> Solver::CreateL(const Matrix<T> &A)
+Matrix<T> Solver::Reverse(const Matrix<T> &A, const Matrix<T> &B, bool &error)
 {
-    Matrix<T> L(A.Rows(), A.Columns());
+}
 
-    int i, j;
-    T temp1, temp2;
-    for (j = 0; j < L.Columns(); ++j)
+// ------------------ Private block ------------------ //
+
+template <class T>
+bool Solver::ForwardMove(Matrix<T> &A, Matrix<T> &L)
+{
+    T m, temp;
+    tuple<int, int> hist_elem;
+
+    int i, j, k;
+    for (i = 0; i < A.Rows(); ++i)
     {
-        L.Set(j, j, 1);
-        temp1 = A.Get(j, j);
-        for (i = j + 1; i < L.Rows(); ++i)
+        temp = Sort(A, L, i);
+        //Проверка для вырожденности
+        if ((temp < 0 ? -temp : temp) < std::numeric_limits<T>::epsilon() * 2) //Можно ввести коэфф нечувствительности
+            return false;
+
+        for (j = i + 1; j < A.Rows(); ++j)
         {
-            temp2 = A.Get(i, j);
-            L.Set(i, j, temp2 / temp1);
+            m = A.Get(j, i) / temp;
+            if (m == 0)
+                continue;
+
+            L.Set(j, i, -m);
+
+            for (k = 0; k < A.Columns(); ++k)
+                A.Set(j, k, A.Get(j, k) - m * A.Get(i, k));
         }
     }
 
-    return L;
+    for (i = 0; i < A.Rows(); ++i)
+        L.Set(i, i, 1);
+
+    return true;
 }
 
 template <class T>
-Matrix<T> Solver::CreateU(const Matrix<T> &L, const Matrix<T> &A)
+static T Solver::Sort(Matrix<T> &A, Matrix<T> &L, int col)
 {
-    Matrix<T> U(A.Columns(), A.Rows());
+    T max, temp;
+    int swapI;
 
-    int i, j;
-    for (j = 0; j < U.Columns(); ++j)
+    int i;
+    max = A.Get(col, col);
+    max = max < 0 ? max * (-1) : max;
+    swapI = col;
+
+    for (i = col + 1; i < A.Rows(); ++i)
     {
-        U.Set(j, j, 1);
-        for (i = j + 1; i < U.Rows(); ++i)
-            U.Set(i, j, -L.Get(i, j));
+        temp = A.Get(i, col);
+        temp = temp < 0 ? temp * (-1) : temp;
+        if (max >= temp)
+            continue;
+
+        max = temp;
+        swapI = i;
     }
 
-    A * 2;
+    if (swapI != col)
+    {
+        A.SwapRows(swapI, col);
+        L.SwapRows(swapI, col);
+        hist_rev.push_back(make_tuple(swapI, col));
+    }
 
-    return U;
+    return max;
 }
 
+template <class T>
+static void Solver::BackwardMove(const Matrix<T> &A, const Matrix<T> &B, Matrix<T> &X)
+{
+    int i, j;
+    T sum = 0;
+    X.Set(X.Rows() - 1, 0, B.Get(X.Rows() - 1, 0) / A.Get(X.Rows() - 1, X.Rows() - 1));
+
+    for (i = X.Rows() - 2; i >= 0; --i)
+    {
+        for (j = i + 1; j < A.Columns(); ++j)
+            sum += A.Get(i, j) * X.Get(j, 0);
+
+        X.Set(i, 0, (B.Get(i, 0) - sum) / A.Get(i, i));
+    }
+}
+
+template <class T>
+static void Solver::Desort(Matrix<T> &X)
+{
+    for (auto iter = hist_rev.begin(); iter != hist_rev.end(); ++iter)
+        X.SwapRows(get<0>(*iter), get<1>(*iter));
+}
 
 #endif

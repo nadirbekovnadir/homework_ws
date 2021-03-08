@@ -22,7 +22,7 @@ public:
         m_rows = n;
         m_matrix.resize(m_rows);
 
-        for (int i = 0; i < n * m; ++i)
+        for (int i = 0; i < n; ++i)
             m_matrix[i] = new vector<T>(m);
     }
 
@@ -97,7 +97,7 @@ public:
         int i, j, k;
         for (i = 0; i < m_rows; ++i)
         {
-            for (j = 0; j < m_columns; ++j)
+            for (j = 0; j < other.Columns(); ++j)
             {
                 sum = 0;
                 for (k = 0; k < m_columns; ++k)

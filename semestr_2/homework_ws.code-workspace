@@ -7,5 +7,10 @@
 			"path": "Task1"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"tuple": "cpp",
+			"utility": "cpp"
+		}
+	}
 }
