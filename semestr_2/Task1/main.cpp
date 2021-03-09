@@ -9,8 +9,13 @@ using namespace std;
 
 void PrintAnswer(Matrix<float> X)
 {
-    for (int i = 0; i < X.Rows(); ++i)
-        cout << X.Get(i, 0) << "\n";
+    for(int j = 0; j < X.Rows(); ++j)
+    {
+        for (int i = 0; i < X.Columns(); ++i)
+            cout << X.Get(j, i) << "\t";
+
+        cout << "\n";
+    }
 }
 
 int main(int, char **)
@@ -51,6 +56,7 @@ int main(int, char **)
     bool error = false;
 
     PrintAnswer(Solver::Solve(A, B, error));
+    PrintAnswer(Solver::Reverse(A, error));
 
     if (error == true)
         cout << "Vyrozhdenaya";

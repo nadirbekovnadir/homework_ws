@@ -12,7 +12,7 @@ public:
     static Matrix<T> Solve(const Matrix<T> &A, const Matrix<T> &B, bool &error);
 
     template <class T>
-    static Matrix<T> Reverse(const Matrix<T> &A, const Matrix<T> &B, bool &error);
+    static Matrix<T> Reverse(const Matrix<T> &A, bool &error);
 
 private:
     template <class T>
@@ -23,7 +23,10 @@ private:
     static T Sort(Matrix<T> &A, Matrix<T> &L, int col);
 
     template <class T>
-    static void BackwardMove(const Matrix<T> &A, const Matrix<T> &B, Matrix<T> &X);
+    static void ForwardSubstitution(const Matrix<T> &L, Matrix<T> &B);
+
+    template <class T>
+    static void BackwardSubstitution(const Matrix<T> &U, Matrix<T> &B);
 
     template <class T>
     static void Desort(Matrix<T> &X);
@@ -38,21 +41,29 @@ Matrix<T> Solver::Solve(const Matrix<T> &A, const Matrix<T> &B, bool &error)
 {
     hist_rev.clear();
 
-    Matrix<T> X(B.Rows(), B.Columns());
-    Matrix<T> U(A);
     Matrix<T> L(A.Rows(), A.Columns());
-    Matrix<T> B_des(B);
+    Matrix<T> U(A);
+    Matrix<T> X(B);
 
     error = !ForwardMove(U, L);
-    Desort(B_des);
-    BackwardMove(U, L * B_des, X);
+    Desort(X);
+
+    ForwardSubstitution(L, X);
+    BackwardSubstitution(U, X);
 
     return X;
 }
 
 template <class T>
-Matrix<T> Solver::Reverse(const Matrix<T> &A, const Matrix<T> &B, bool &error)
+Matrix<T> Solver::Reverse(const Matrix<T> &A, bool &error)
 {
+    hist_rev.clear();
+
+    Matrix<T> E(A.Rows(), A.Columns());
+    for (int i = 0; i < E.Rows(); ++i)
+        E.Set(i, i, 1);
+
+    return Solve(A, E, error);
 }
 
 // ------------------ Private block ------------------ //
@@ -77,7 +88,7 @@ bool Solver::ForwardMove(Matrix<T> &A, Matrix<T> &L)
             if (m == 0)
                 continue;
 
-            L.Set(j, i, -m);
+            L.Set(j, i, m);
 
             for (k = 0; k < A.Columns(); ++k)
                 A.Set(j, k, A.Get(j, k) - m * A.Get(i, k));
@@ -123,18 +134,42 @@ static T Solver::Sort(Matrix<T> &A, Matrix<T> &L, int col)
 }
 
 template <class T>
-static void Solver::BackwardMove(const Matrix<T> &A, const Matrix<T> &B, Matrix<T> &X)
+void Solver::ForwardSubstitution(const Matrix<T> &L, Matrix<T> &B)
 {
-    int i, j;
-    T sum = 0;
-    X.Set(X.Rows() - 1, 0, B.Get(X.Rows() - 1, 0) / A.Get(X.Rows() - 1, X.Rows() - 1));
-
-    for (i = X.Rows() - 2; i >= 0; --i)
+    T sum;
+    int i, j, k;
+    for (k = 0; k < B.Columns(); ++k)
     {
-        for (j = i + 1; j < A.Columns(); ++j)
-            sum += A.Get(i, j) * X.Get(j, 0);
+        B.Set(0, k, B.Get(0, k) / L.Get(0, 0));
 
-        X.Set(i, 0, (B.Get(i, 0) - sum) / A.Get(i, i));
+        for (i = 1; i < B.Rows(); ++i)
+        {
+            sum = 0;
+            for (j = 0; j < i; ++j)
+                sum += L.Get(i, j) * B.Get(j, k);
+
+            B.Set(i, k, (B.Get(i, k) - sum) / L.Get(i, i));
+        }
+    }
+}
+
+template <class T>
+static void Solver::BackwardSubstitution(const Matrix<T> &U, Matrix<T> &B)
+{
+    T sum;
+    int i, j, k;
+    for (k = 0; k < B.Columns(); ++k)
+    {
+        B.Set(B.Rows() - 1, k, B.Get(B.Rows() - 1, k) / U.Get(B.Rows() - 1, B.Rows() - 1));
+
+        for (i = B.Rows() - 2; i >= 0; --i)
+        {
+            sum = 0;
+            for (j = i + 1; j < U.Columns(); ++j)
+                sum += U.Get(i, j) * B.Get(j, k);
+
+            B.Set(i, k, (B.Get(i, k) - sum) / U.Get(i, i));
+        }
     }
 }
 
